@@ -5,85 +5,71 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
+import java.net.SocketAddress;
+
+import static java.lang.System.out;
 
 public class Server {
 
-    private int port;
+	private int port;
 
-    public Server bind(int port) {
-        this.port = port;
-        return this;
-    }
+	public Server bind(int port) {
+		this.port = port;
+		return this;
+	}
 
-    public void start() {
-        try {
-            ServerSocket server = new ServerSocket(port);
-            System.out.println("server start in " + port);
-            while (true) {
-                Socket client = server.accept();
-                new Thread(new ServerReceiveHandler(client)).start();
-                new Thread(new ServerSendHandler(client)).start();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+	public void start() {
+		try {
+			ServerSocket server = new ServerSocket(port);
+			server.setReceiveBufferSize(128 * 2);
+			out.println("server start in " + port);
+			while (true) {
+				Socket client = server.accept();
+				new Thread(new ServerReceiveHandler(client)).start();
+				new Thread(new ServerSendHandler(client)).start();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
-    private static class ServerSendHandler implements Runnable {
-        private Socket socket;
+	private static class ServerSendHandler implements Runnable {
+		private Socket socket;
 
-        public ServerSendHandler(Socket socket) {
-            this.socket = socket;
-        }
+		public ServerSendHandler(Socket socket) {
+			this.socket = socket;
+			System.out.println(socket.getRemoteSocketAddress() + " connect.");
+		}
 
-        @Override
-        public void run() {
-            try {
-                OutputStream outputStream = socket.getOutputStream();
+		@Override
+		public void run() {
+			try {
+				OutputStream out = socket.getOutputStream();
+				Util.write(out);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
-                int i = 0;
+	private static class ServerReceiveHandler implements Runnable {
 
-                while (i != -1) {
-                    i = System.in.read();
-                    outputStream.write(i);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+		private Socket socket;
 
-    private static class ServerReceiveHandler implements Runnable {
+		public ServerReceiveHandler(Socket socket) {
+			this.socket = socket;
+		}
 
-        private Socket socket;
-
-        public ServerReceiveHandler(Socket socket) {
-            this.socket = socket;
-        }
-
-        @Override
-        public void run() {
-            try {
-                System.out.println("client [" + socket.getRemoteSocketAddress() + "] connect.");
-                InputStream inputStream = socket.getInputStream();
-
-                int i = 0, count = 0;
-                byte[] bytes = new byte[1024];
-                while (i != -1) {
-                    i = inputStream.read();
-                    if (i == 13 || i == 10) {
-                        System.err.println("enter");
-                        System.out.println("receive from [" + socket.getRemoteSocketAddress() + "]:" + new String(Arrays.copyOf(bytes, count)));
-                        count = 0;
-                    } else {
-                        bytes[count++] = (byte) i;
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+		@Override
+		public void run() {
+			try {
+				InputStream input = socket.getInputStream();
+				SocketAddress address = socket.getRemoteSocketAddress();
+				Util.print2(input, "receive from client [" + address + "]:");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 }
 

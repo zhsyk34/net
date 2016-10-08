@@ -1,4 +1,6 @@
-package com.cat.io;
+package com.cat.netty.talk;
+
+import com.cat.io.Util;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -6,9 +8,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-public class Client {
-
-	private static final String EXIT = "exit";
+public class BaseClient {
 
 	public void connect(String host, int port) {
 		try {
